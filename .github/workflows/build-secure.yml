@@ -21,24 +21,35 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # PyArmor пока убрали из зависимостей для чистого теста
-          pip install pyinstaller customtkinter
+          # Возвращаем PyArmor в установку
+          pip install pyinstaller pyarmor==8.5.10 customtkinter
           pip install -e .[win10]
 
       - name: Inject Secret Salt
         shell: bash
         run: |
-          # Подставляем твой секретный пароль из GitHub Secrets в код
           sed -i "s/REPLACE_ME_SECRET_SALT/${{ secrets.PROXY_SECRET_SALT }}/g" proxy/hwid_auth.py
+
+      - name: Obfuscate Code
+        shell: cmd
+        run: |
+          :: Шифруем только hwid_auth.py
+          pyarmor gen -O obf_dist proxy/hwid_auth.py
+          
+          :: Копируем зашифрованный файл обратно в папку proxy
+          copy /Y obf_dist\hwid_auth.py proxy\hwid_auth.py
+          
+          :: Копируем системную папку PyArmor, необходимую для работы защиты
+          xcopy obf_dist\pyarmor_runtime_000000 proxy\pyarmor_runtime_000000 /S /E /I /Y
 
       - name: Build with PyInstaller
         shell: cmd
         run: |
-          :: Собираем EXE. Теперь PyInstaller точно найдет и упакует hwid_auth.py
+          :: Собираем EXE. Теперь он захватит и зашифрованный файл, и рантайм
           pyinstaller packaging/windows.spec
 
       - name: Upload Secure EXE
         uses: actions/upload-artifact@v4
         with:
-          name: TgWsProxy_Secure_Windows
+          name: TGProxy_Secure_Windows
           path: dist/*.exe
