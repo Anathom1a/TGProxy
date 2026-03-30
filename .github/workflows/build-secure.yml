@@ -1,0 +1,46 @@
+name: Build Secure Windows Proxy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller pyarmor customtkinter
+          pip install -e .[win10]
+
+      - name: Inject Secret Salt
+        shell: bash
+        run: |
+          sed -i "s/REPLACE_ME_SECRET_SALT/${{ secrets.PROXY_SECRET_SALT }}/g" proxy/hwid_auth.py
+
+      - name: Obfuscate Code
+        run: |
+          pyarmor gen -O obf_dist proxy/hwid_auth.py proxy/tg_ws_proxy.py
+          copy obf_dist\proxy\hwid_auth.py proxy\hwid_auth.py
+          copy obf_dist\proxy\tg_ws_proxy.py proxy\tg_ws_proxy.py
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller packaging/windows.spec
+
+      - name: Upload Secure EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: TgWsProxy_Secure_Windows
+          path: dist/*.exe
