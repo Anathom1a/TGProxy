@@ -35,10 +35,10 @@ import proxy.tg_ws_proxy as tg_ws_proxy
 # --- ИМПОРТ НАШЕГО МОДУЛЯ HWID ---
 try:
     from proxy.hwid_auth import get_hwid, generate_key, is_activated, save_key
-except ImportError as e:
-    # Если файл защиты не найден или поврежден, блокируем всё
+except ImportError as _err:
+    _err_msg = str(_err)  # Сохраняем текст ошибки в "вечную" переменную
     def is_activated(): return False
-    def get_hwid(): return f"ОШИБКА_ИМПОРТА: {e}"
+    def get_hwid(): return f"ОШИБКА_ИМПОРТА: {_err_msg}"
     def generate_key(hwid): return "ERROR"
     def save_key(key): pass
 # ---------------------------------
