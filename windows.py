@@ -34,14 +34,18 @@ import proxy.tg_ws_proxy as tg_ws_proxy
 
 # --- ИМПОРТ НАШЕГО МОДУЛЯ HWID ---
 try:
-    from proxy.hwid_auth import get_hwid, generate_key, is_activated, save_key, SECRET_SALT
+    from proxy.hwid_auth import get_hwid, generate_key, is_activated, save_key
+    # Хитрость: заставляем PyInstaller увидеть и упаковать рантайм PyArmor
+    try:
+        import proxy.pyarmor_runtime_000000
+    except ImportError:
+        pass
 except ImportError as _err:
     _err_msg = str(_err)
     def is_activated(): return False
     def get_hwid(): return f"ОШИБКА_ИМПОРТА: {_err_msg}"
     def generate_key(hwid): return "ERROR"
     def save_key(key): pass
-    SECRET_SALT = "ОШИБКА_ИМПОРТА"
 # ---------------------------------
 
 from utils.tray_common import (
@@ -337,7 +341,7 @@ def require_activation() -> bool:
     ctk.set_appearance_mode("system")
     app = ctk.CTk()
     app.title("Активация TGProxy")
-    app.geometry("500x380")
+    app.geometry("500x320")
     
     try:
         app.iconbitmap(ICON_PATH)
@@ -362,11 +366,6 @@ def require_activation() -> bool:
         
     ctk.CTkButton(hwid_frame, text="Копировать", width=90, command=copy_hwid).pack(side="left")
     # ----------------------------------------
-    
-    # --- ДЕБАГ: ВЫВОДИМ СЕКРЕТЫ НА ЭКРАН ---
-    ctk.CTkLabel(app, text=f"Вшитая соль: {SECRET_SALT}", text_color="red").pack(pady=0)
-    ctk.CTkLabel(app, text=f"Ожидаемый ключ: {generate_key(hwid)}", text_color="red").pack(pady=0)
-    # ---------------------------------------
     
     ctk.CTkLabel(app, text="Введите полученный ключ доступа:").pack(pady=(10, 0))
     
